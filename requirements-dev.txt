@@ -1,0 +1,7 @@
+-e ./shared
+-e ./riot-integration-service
+-e ./match-history-service
+-e ./recommendation-service
+-e ./api-gateway
+pytest>=8,<10
+ruff>=0.9,<1

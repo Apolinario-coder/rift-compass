@@ -1,0 +1,88 @@
+services:
+  riot-integration:
+    build: ./riot-integration-service
+    env_file:
+      - path: ./riot-integration-service/.env
+        required: false
+      - path: ./.env
+        required: false
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+  history-db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: history
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-local-development-only}
+      POSTGRES_DB: history
+    volumes: ["history-data:/var/lib/postgresql/data"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U history -d history"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+  recommendation-db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: recommendation
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-local-development-only}
+      POSTGRES_DB: recommendation
+    volumes: ["recommendation-data:/var/lib/postgresql/data"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U recommendation -d recommendation"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+  match-history:
+    build:
+      context: .
+      args: {SERVICE: match-history-service}
+    command: ["uvicorn", "match_history.main:app", "--host", "0.0.0.0", "--port", "8000", "--no-access-log"]
+    environment:
+      HISTORY_DATABASE_URL: postgresql+psycopg://history:${DB_PASSWORD:-local-development-only}@history-db:5432/history
+      HISTORY_RIOT_URL: http://riot-integration:8000
+    depends_on:
+      history-db: {condition: service_healthy}
+      riot-integration: {condition: service_healthy}
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+  recommendation:
+    build:
+      context: .
+      args: {SERVICE: recommendation-service}
+    command: ["uvicorn", "recommendation.main:app", "--host", "0.0.0.0", "--port", "8000", "--no-access-log"]
+    environment:
+      RECOMMENDATION_DATABASE_URL: postgresql+psycopg://recommendation:${DB_PASSWORD:-local-development-only}@recommendation-db:5432/recommendation
+      RECOMMENDATION_HISTORY_URL: http://match-history:8000
+    depends_on:
+      recommendation-db: {condition: service_healthy}
+      match-history: {condition: service_healthy}
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+  gateway:
+    build:
+      context: .
+      args: {SERVICE: api-gateway}
+    command: ["uvicorn", "gateway.main:app", "--host", "0.0.0.0", "--port", "8000", "--no-access-log"]
+    ports: ["127.0.0.1:8010:8000"]
+    env_file:
+      - path: ./.env
+        required: false
+    environment:
+      GATEWAY_RIOT_URL: http://riot-integration:8000
+      GATEWAY_HISTORY_URL: http://match-history:8000
+      GATEWAY_RECOMMENDATION_URL: http://recommendation:8000
+    depends_on:
+      match-history: {condition: service_healthy}
+      recommendation: {condition: service_healthy}
+volumes:
+  history-data:
+  recommendation-data:
