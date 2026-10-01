@@ -1,5 +1,8 @@
--e ./shared
--e ./riot-integration-service
--e ./match-history-service
--e ./recommendation-service
--e ./api-gateway
+fastapi>=0.115,<1
+uvicorn>=0.30,<1
+httpx>=0.27,<1
+pydantic-settings>=2.6,<3
+sqlalchemy>=2.0,<3
+alembic>=1.14,<2
+python-dotenv>=1.0,<2
+PyJWT>=2.10,<3
