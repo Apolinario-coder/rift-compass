@@ -1,0 +1,480 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Rift Compass — Champion Discovery</title>
+  <meta name="description" content="Descubra campeões de League of Legends alinhados ao seu estilo de jogo através da análise do seu histórico ranqueado.">
+  <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@700;800;900&family=Rajdhani:wght@600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+
+  <div class="ambient-backdrop">
+    <div class="ambient-glow"></div>
+    <div class="ambient-splash" id="ambient-splash"></div>
+    <div class="ambient-grid"></div>
+  </div>
+
+  <header class="site-header" id="navbar">
+    <div class="header-inner">
+      <a href="/" class="brand-link" aria-label="Rift Compass Início">
+        <div class="brand-crest">
+          <svg viewBox="0 0 28 28" width="20" height="20" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="14" cy="14" r="12" stroke="#22334a" stroke-width="1.5"/>
+            <line x1="14" y1="2" x2="14" y2="5" stroke="#c8aa6e" stroke-width="1.5"/>
+            <line x1="14" y1="23" x2="14" y2="26" stroke="#22334a" stroke-width="1.5"/>
+            <line x1="2" y1="14" x2="5" y2="14" stroke="#22334a" stroke-width="1.5"/>
+            <line x1="23" y1="14" x2="26" y2="14" stroke="#22334a" stroke-width="1.5"/>
+            <polygon points="14,5 17.5,14 14,12.5" fill="#0ac8b9"/>
+            <polygon points="14,5 14,12.5 10.5,14" fill="#4efde8"/>
+            <polygon points="14,23 10.5,14 14,15.5" fill="#182538"/>
+            <polygon points="14,23 14,15.5 17.5,14" fill="#253850"/>
+            <circle cx="14" cy="14" r="2" fill="#c8aa6e"/>
+          </svg>
+        </div>
+        <div class="brand-text">
+          <span class="brand-name">RIFT <strong>COMPASS</strong></span>
+        </div>
+      </a>
+
+      <nav class="nav-links" id="nav-tabs">
+        <button class="nav-item active" data-tab="recommendations">Recomendações</button>
+        <button class="nav-item" data-tab="history">Histórico</button>
+        <button class="nav-item" data-tab="catalog">Catálogo</button>
+        <button class="nav-item" data-tab="methodology">Metodologia</button>
+      </nav>
+
+      <div class="header-actions">
+        <span id="patch" class="version-badge">v14.x</span>
+        <button id="logout" class="btn-ghost" hidden>Sair</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="page-body">
+
+    <section class="hero-section" id="hero-section">
+      <div class="hero-container">
+        
+        <div class="hero-text-wrap">
+          <h1 class="hero-title" id="hero-title">
+            Encontre seu próximo main no <span class="gold-gradient">Summoner's Rift</span>
+          </h1>
+          
+          <p class="hero-subtitle" id="hero-desc">
+            Algoritmo estatístico que avalia suas rotas mais jogadas, classes dominadas e métricas individuais para sugerir campeões com sinergia real com a sua gameplay.
+          </p>
+        </div>
+
+        <div class="search-module" id="search-card">
+          <form id="search-form" class="search-form">
+            
+            <div class="search-field player-name-field">
+              <span class="field-caption">INVOCADOR</span>
+              <input id="game-name" name="gameName" placeholder="Ex: Faker" required maxlength="100" autocomplete="off" spellcheck="false">
+            </div>
+
+            <div class="search-field tag-field">
+              <span class="field-caption">TAG</span>
+              <div class="tag-input-wrap">
+                <span class="tag-prefix">#</span>
+                <input id="tag-line" name="tagLine" placeholder="BR1" required maxlength="100" autocomplete="off" spellcheck="false">
+              </div>
+            </div>
+
+            <div class="search-field select-field">
+              <span class="field-caption">REGIÃO</span>
+              <select id="region">
+                <option value="americas">Américas (BR/NA/LAS)</option>
+                <option value="europe">Europa (EUW/EUNE)</option>
+                <option value="asia">Ásia (KR/JP)</option>
+                <option value="sea">Sudeste Asiático</option>
+              </select>
+            </div>
+
+            <div class="search-field select-field">
+              <span class="field-caption">FILA</span>
+              <select id="queue">
+                <option value="420">Solo / Duo</option>
+                <option value="440">Flex 5v5</option>
+              </select>
+            </div>
+
+            <div class="search-field select-field matches-field">
+              <span class="field-caption">AMOSTRA</span>
+              <select id="count">
+                <option value="20">20 jogos</option>
+                <option value="50">50 jogos</option>
+                <option value="10">10 jogos</option>
+              </select>
+            </div>
+
+            <button type="submit" id="analyze-button" class="btn-primary">
+              <span>Buscar Perfil</span>
+              <svg viewBox="0 0 20 20" width="16" height="16" fill="currentColor">
+                <path fill-rule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clip-rule="evenodd" />
+              </svg>
+            </button>
+          </form>
+
+          <div class="search-bottom-bar">
+            <span class="disclaimer-inline">Apenas partidas ranqueadas de Summoner's Rift são consideradas</span>
+            <button type="button" id="demo-button" class="demo-trigger">
+              <span>Carregar Dados de Demonstração</span>
+              <span class="arrow-glyph">→</span>
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <div id="status" class="toast-notice" role="status" aria-live="polite" hidden></div>
+    <div id="error" class="toast-notice error-notice" role="alert" hidden></div>
+
+    <section id="dashboard" class="dashboard-wrapper" hidden>
+
+      <div class="profile-header-card">
+        <div class="profile-main">
+          <div id="avatar" class="player-avatar">RC</div>
+          <div class="player-info">
+            <div class="player-heading">
+              <h2 id="player-name" class="player-handle"></h2>
+              <span id="demo-badge" class="demo-pill">DEMONSTRAÇÃO</span>
+            </div>
+            <p id="sample-description" class="player-details"></p>
+          </div>
+        </div>
+        <div class="profile-aside">
+          <span id="analysis-date" class="timestamp-text"></span>
+          <span id="sample-note" class="sample-tag"></span>
+        </div>
+      </div>
+
+      <div class="bento-grid">
+        <div class="bento-card">
+          <span class="bento-label">PARTIDAS ANALISADAS</span>
+          <div class="bento-data">
+            <strong id="stat-games" class="bento-number">—</strong>
+            <span id="stat-queue" class="bento-sub">—</span>
+          </div>
+        </div>
+
+        <div class="bento-card winrate-card">
+          <span class="bento-label">TAXA DE VITÓRIA</span>
+          <div class="bento-data">
+            <strong id="stat-winrate" class="bento-number highlight-number">—</strong>
+            <span id="stat-wins" class="bento-sub">—</span>
+          </div>
+        </div>
+
+        <div class="bento-card">
+          <span class="bento-label">KDA MÉDIO</span>
+          <div class="bento-data">
+            <strong id="stat-kda" class="bento-number">—</strong>
+            <span class="bento-sub">(Kills + Assists) / Deaths</span>
+          </div>
+        </div>
+
+        <div class="bento-card role-card">
+          <span class="bento-label">ROTA PRINCIPAL</span>
+          <div class="bento-data">
+            <strong id="stat-role" class="bento-number">—</strong>
+            <div id="role-bars" class="role-distribution-bar"></div>
+          </div>
+        </div>
+      </div>
+
+      <section id="recommendations-panel" class="view-panel">
+        <div class="panel-top-controls">
+          <div class="controls-left">
+            <h3 class="panel-heading">Sugestões de Afinidade</h3>
+            <span id="recommendation-note" class="panel-meta-info"></span>
+          </div>
+          <div class="controls-right">
+            <div class="filter-group">
+              <span class="filter-caption">Pool:</span>
+              <select id="kind-filter" class="select-pill">
+                <option value="all">Todos os Campeões</option>
+                <option value="known">Já Jogados no Histórico</option>
+                <option value="explore">Novos para Aprender</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div class="lane-bar">
+          <button class="lane-chip selected" data-role="ALL">
+            <svg class="lane-svg" viewBox="0 0 16 16" width="14" height="14"><circle cx="8" cy="8" r="6" fill="none" stroke="currentColor" stroke-width="1.5"/><line x1="2" y1="14" x2="14" y2="2" stroke="currentColor" stroke-width="1.5"/></svg>
+            <span>Todas</span>
+          </button>
+          <button class="lane-chip" data-role="TOP">
+            <svg class="lane-svg" viewBox="0 0 16 16" width="14" height="14"><path d="M2 2h5v5H2zM9 2h5v5H9zM2 9h5v5H2z" fill="currentColor"/></svg>
+            <span>Topo</span>
+          </button>
+          <button class="lane-chip" data-role="JUNGLE">
+            <svg class="lane-svg" viewBox="0 0 16 16" width="14" height="14"><path d="M8 2L3 7l5 7 5-7z" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="8" cy="8" r="2" fill="currentColor"/></svg>
+            <span>Selva</span>
+          </button>
+          <button class="lane-chip" data-role="MIDDLE">
+            <svg class="lane-svg" viewBox="0 0 16 16" width="14" height="14"><polygon points="8,1 15,8 8,15 1,8" fill="none" stroke="currentColor" stroke-width="1.5"/><polygon points="8,4 12,8 8,12 4,8" fill="currentColor"/></svg>
+            <span>Meio</span>
+          </button>
+          <button class="lane-chip" data-role="BOTTOM">
+            <svg class="lane-svg" viewBox="0 0 16 16" width="14" height="14"><path d="M9 13h4V9M13 13L6 6" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="5" cy="5" r="3" fill="currentColor"/></svg>
+            <span>Atirador</span>
+          </button>
+          <button class="lane-chip" data-role="UTILITY">
+            <svg class="lane-svg" viewBox="0 0 16 16" width="14" height="14"><path d="M8 2l5 3v4c0 3.5-2.5 6.5-5 7-2.5-.5-5-3.5-5-7V5l5-3z" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="8" cy="8" r="2" fill="currentColor"/></svg>
+            <span>Suporte</span>
+          </button>
+        </div>
+
+        <div id="recommendation-grid" class="cards-grid"></div>
+
+        <button id="more-button" class="btn-load-more" hidden>
+          <span>Mostrar Mais Recomendações</span>
+        </button>
+
+      </section>
+
+      <section id="history-panel" class="view-panel" hidden>
+        <div class="panel-top-controls">
+          <div class="controls-left">
+            <h3 class="panel-heading">Histórico de Partidas</h3>
+            <span class="panel-meta-info">Resultados detalhados da sua amostra recente</span>
+          </div>
+          <div class="controls-right">
+            <select id="history-filter" class="select-pill">
+              <option value="all">Todas as Partidas</option>
+              <option value="win">Apenas Vitórias</option>
+              <option value="loss">Apenas Derrotas</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="table-container">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>CAMPEÃO</th>
+                <th>RESULTADO</th>
+                <th>POSIÇÃO</th>
+                <th>K / D / A</th>
+                <th>CS/MIN</th>
+                <th>DURAÇÃO</th>
+                <th>DATA</th>
+              </tr>
+            </thead>
+            <tbody id="history-body"></tbody>
+          </table>
+        </div>
+        <p id="history-empty" class="empty-state-notice" hidden>Nenhuma partida encontrada com o filtro selecionado.</p>
+      </section>
+
+      <section id="catalog-panel" class="view-panel" hidden>
+        <div class="panel-top-controls">
+          <div class="controls-left">
+            <h3 class="panel-heading">Catálogo de Campeões</h3>
+            <span class="panel-meta-info">Base de dados completa dos campeões de League of Legends</span>
+          </div>
+          <div class="controls-right">
+            <input id="champion-search" type="search" placeholder="Filtrar por nome…" class="search-pill-input">
+          </div>
+        </div>
+
+        <div id="catalog-grid" class="catalog-grid"></div>
+      </section>
+
+      <section id="methodology-panel" class="view-panel" hidden>
+        <div class="panel-top-controls">
+          <div class="controls-left">
+            <h3 class="panel-heading">Metodologia do Algoritmo</h3>
+            <span class="panel-meta-info">Entenda os critérios matemáticos e estatísticos por trás do índice de afinidade</span>
+          </div>
+        </div>
+
+        <div class="methodology-page">
+          <div class="method-hero-card">
+            <div class="method-hero-icon">
+              <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"/>
+                <path d="M12 16v-4M12 8h.01"/>
+              </svg>
+            </div>
+            <div class="method-hero-text">
+              <h4>Índice de Afinidade Tática (0 a 100)</h4>
+              <p>O Rift Compass não calcula taxa de vitória garantida nem impõe um "meta" genérico. O objetivo é responder: <em>"Quais campeões compartilham o mesmo DNA tático, exigência mecânica e estilo de jogo que você já pratica no Summoner's Rift?"</em></p>
+            </div>
+          </div>
+
+          <div class="method-pillars-grid">
+            <div class="method-pillar-box">
+              <div class="pillar-weight">45%</div>
+              <div class="pillar-title">Preferência de Rota</div>
+              <p class="pillar-desc">
+                Avaliamos sua consistência e volume de partidas em cada uma das cinco posições (Topo, Selva, Meio, Atirador e Suporte).
+              </p>
+              <div class="pillar-detail">
+                <span>Critério:</span> Campeões fora das suas posições principais sofrem atenuação progressiva, evitando sugestões desconexas da sua rota habitual.
+              </div>
+            </div>
+
+            <div class="method-pillar-box">
+              <div class="pillar-weight">25%</div>
+              <div class="pillar-title">Classes & Arquétipos</div>
+              <p class="pillar-desc">
+                Comparamos as classes oficiais do Data Dragon (Mago, Assassino, Lutador, Atirador, Tanque e Suporte) com o perfil dos campeões onde você tem maior conforto.
+              </p>
+              <div class="pillar-detail">
+                <span>Critério:</span> Sinergia vetorial que identifica padrões de combate corpo a corpo, controle de grupo, rajada de dano ou suporte utilitário.
+              </div>
+            </div>
+
+            <div class="method-pillar-box">
+              <div class="pillar-weight">30%</div>
+              <div class="pillar-title">Desempenho Correlato</div>
+              <p class="pillar-desc">
+                Avaliamos sua taxa de vitórias real e KDA agregado nos campeões jogados, aplicando uma suavização Bayesiana estatística.
+              </p>
+              <div class="pillar-detail">
+                <span>Critério:</span> Uma única vitória em 1 partida não distorce a nota para 100%. Campeões nunca jogados recebem uma base neutra de exploração.
+              </div>
+            </div>
+          </div>
+
+          <div class="method-faq-card">
+            <h4>Perguntas Frequentes</h4>
+            <div class="faq-list">
+              <div class="faq-item">
+                <strong>O que significa a distinção "Seu Pool" vs "Expansão"?</strong>
+                <p>Campeões marcados como <em>Seu Pool</em> são escolhas que você já utilizou na sua amostra de partidas recentes. Campeões marcados como <em>Expansão</em> são novos para você, mas compartilham características idênticas aos seus mains.</p>
+              </div>
+              <div class="faq-item">
+                <strong>Quais partidas são contabilizadas na análise?</strong>
+                <p>Apenas partidas ranqueadas de Summoner's Rift (Solo/Duo ou Flex 5v5). Partidas com menos de 10 minutos (remakes ou desistências precoces) e outros modos (ARAM, Arena, Bots) são automaticamente filtrados.</p>
+              </div>
+              <div class="faq-item">
+                <strong>O elo / rank afeta o cálculo?</strong>
+                <p>Não diretamente. O algoritmo é agnóstico a elo ou confrontos individuais (matchups). Ele foca estritamente na sua identidade mecânica e nas estatísticas da sua amostra de jogos.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="footer-container">
+      <div class="footer-meta">
+        <span class="footer-logo">RIFT COMPASS</span>
+        <span class="footer-copy">Ferramenta independente de descoberta de campeões para League of Legends.</span>
+      </div>
+      <p class="footer-legal">
+        Rift Compass não é endossado pela Riot Games e não reflete as visões ou opiniões da Riot Games ou de qualquer pessoa oficialmente envolvida na produção ou gestão de League of Legends. League of Legends e Riot Games são marcas comerciais ou registradas da Riot Games, Inc.
+      </p>
+    </div>
+  </footer>
+
+  <dialog id="method-dialog" class="app-modal">
+    <div class="modal-box">
+      <button class="modal-close" data-close="method-dialog" aria-label="Fechar">✕</button>
+      <div class="modal-head">
+        <span class="modal-tag">TRANSPARÊNCIA DO ALGORITMO</span>
+        <h2>Metodologia de Afinidade</h2>
+      </div>
+
+      <div class="pillars-row">
+        <div class="pillar-card">
+          <div class="pillar-val">45%</div>
+          <div class="pillar-name">Preferência de Rota</div>
+          <p>Prioriza campeões que atuam nas suas posições com maior volume e consistência de jogo.</p>
+        </div>
+        <div class="pillar-card">
+          <div class="pillar-val">25%</div>
+          <div class="pillar-name">Classes & Estilo</div>
+          <p>Compara as tags oficiais do Data Dragon (Mago, Assassino, Lutador, Atirador, Tanque, Suporte).</p>
+        </div>
+        <div class="pillar-card">
+          <div class="pillar-val">30%</div>
+          <div class="pillar-name">Desempenho Correlato</div>
+          <p>Avalia vitórias e KDA com campeões similares com atenuação estatística para evitar distorções.</p>
+        </div>
+      </div>
+
+      <p class="modal-desc">
+        A pontuação varia de <strong>0 a 100</strong> e funciona como um indicador de compatibilidade tática, não como predição de vitória. Campeões fora da sua rota habitual recebem penalidades moderadas.
+      </p>
+
+      <div style="border-top: 1px solid var(--border-subtle); margin: 20px 0 16px;"></div>
+
+      <div class="modal-head">
+        <span class="modal-tag">CURVA DE EVOLUÇÃO DE WINRATE</span>
+        <h3 style="font-family: var(--font-heading); font-size: 18px; color: var(--gold-primary); margin-top: 4px;">Ponto de Inflexão da Taxa de Vitória</h3>
+      </div>
+      <p class="modal-desc" style="margin-top: 8px;">
+        O modelo avalia a <strong>curva de winrate por volume de partidas</strong> para determinar a partir de quantas partidas em média um jogador começa a registrar aumento consistente de vitórias com aquele campeão:
+      </p>
+      <div class="winrate-three-stats" style="margin: 12px 0;">
+        <div class="winrate-stat-box">
+          <span class="stat-box-lbl">1. Estreia (1-5 jogos)</span>
+          <span class="stat-box-hint">Taxa de vitória inicial de novatos com o campeão (38% a 49%).</span>
+        </div>
+        <div class="winrate-stat-box highlight-box">
+          <span class="stat-box-lbl">2. Ponto de Inflexão</span>
+          <span class="stat-box-hint">Momento em que a inclinação do WR vira positiva (4 a 32 jogos).</span>
+        </div>
+        <div class="winrate-stat-box">
+          <span class="stat-box-lbl">3. Teto Especialista</span>
+          <span class="stat-box-hint">Platô de vitórias de jogadores com 50+ partidas (52% a 56%).</span>
+        </div>
+      </div>
+      <p class="modal-desc" style="font-size: 12px; color: var(--text-dim);">
+        Campeões diretos e tolerantes (ex: Malphite, Warwick, Yuumi) começam a aumentar o winrate rapidamente (~4 a 6 partidas). Já campeões complexos ou de execução extrema (ex: Yasuo, Aphelios, Hwei, Riven) exigem maior volume de partidas (~20 a 34 jogos) até que o jogador comece a reverter o winrate inicial.
+      </p>
+
+      <div class="modal-foot">
+        <button class="btn-primary" data-close="method-dialog">Entendido</button>
+      </div>
+    </div>
+  </dialog>
+
+  <dialog id="champion-dialog" class="app-modal champion-modal">
+    <div class="modal-box">
+      <button class="modal-close" data-close="champion-dialog" aria-label="Fechar">✕</button>
+      <div id="champion-detail"></div>
+    </div>
+  </dialog>
+
+  <dialog id="login-dialog" class="app-modal">
+    <div class="modal-box">
+      <div class="modal-head">
+        <span class="modal-tag">ACESSO RESTRITO</span>
+        <h2>Entrar no Rift Compass</h2>
+      </div>
+      <form id="login-form" class="modal-form">
+        <label>
+          <span>Usuário</span>
+          <input id="username" autocomplete="username" required>
+        </label>
+        <label>
+          <span>Senha</span>
+          <input id="password" type="password" autocomplete="current-password" required>
+        </label>
+        <p id="login-error" role="alert" class="error-msg"></p>
+        <button class="btn-primary" type="submit">Acessar</button>
+      </form>
+    </div>
+  </dialog>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+  <script src="/static/app.js"></script>
+</body>
+</html>

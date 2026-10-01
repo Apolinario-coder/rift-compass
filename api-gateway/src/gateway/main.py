@@ -213,9 +213,17 @@ def create_app(settings=None, transport=None):
                 return recommend(demo_analysis(cat), role=role)
             raise
 
-    static = Path(__file__).parent / "static"
+    static_candidates = [
+        Path(__file__).parent / "static",
+        Path.cwd() / "static",
+        Path.cwd() / "api-gateway" / "src" / "gateway" / "static",
+        Path(__file__).resolve().parent.parent.parent.parent / "static",
+    ]
+    static = next((d for d in static_candidates if d.exists() and (d / "index.html").exists()), static_candidates[0])
     app.mount("/static", StaticFiles(directory=static), name="static")
 
+    @app.get("/api/index", include_in_schema=False)
+    @app.get("/api/index.py", include_in_schema=False)
     @app.get("/", include_in_schema=False)
     async def index():
         return FileResponse(static / "index.html")
