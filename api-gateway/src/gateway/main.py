@@ -146,6 +146,13 @@ def create_app(settings=None, transport=None):
         )
         return {"authenticated": True}
 
+    def get_http():
+        http = getattr(app.state, "http", None)
+        if http is None or http.is_closed:
+            http = httpx.AsyncClient(timeout=900, transport=transport)
+            app.state.http = http
+        return http
+
     @app.post("/api/logout")
     async def logout(response: Response):
         response.delete_cookie("session")
@@ -153,16 +160,25 @@ def create_app(settings=None, transport=None):
 
     @app.get("/api/catalog")
     async def catalog():
-        return await fetch(app.state.http, "GET", settings.riot_url + "/api/v1/champions")
+        try:
+            return await fetch(get_http(), "GET", settings.riot_url + "/api/v1/champions")
+        except Exception:
+            from riot_integration.catalog import catalog as get_catalog
+            return get_catalog()
 
     @app.get("/api/analyses/demo")
     async def demo():
-        return await fetch(app.state.http, "GET", settings.history_url + "/api/v1/analyses/demo")
+        try:
+            return await fetch(get_http(), "GET", settings.history_url + "/api/v1/analyses/demo")
+        except Exception:
+            from match_history.demo import demo_analysis
+            from riot_integration.catalog import catalog as get_catalog
+            return demo_analysis(get_catalog())
 
     @app.post("/api/analyses", status_code=201)
     async def analyze(body: AnalysisRequest):
         return await fetch(
-            app.state.http,
+            get_http(),
             "POST",
             settings.history_url + "/api/v1/analyses",
             json=body.model_dump(),
@@ -171,7 +187,7 @@ def create_app(settings=None, transport=None):
     @app.get("/api/analyses/{analysis_id}")
     async def read_analysis(analysis_id: UUID):
         return await fetch(
-            app.state.http, "GET", settings.history_url + "/api/v1/analyses/" + str(analysis_id)
+            get_http(), "GET", settings.history_url + "/api/v1/analyses/" + str(analysis_id)
         )
 
     @app.get("/api/recommendations/{analysis_id}")
@@ -181,12 +197,21 @@ def create_app(settings=None, transport=None):
                 UUID(analysis_id)
             except ValueError:
                 raise HTTPException(422, "Identificador inválido.") from None
-        return await fetch(
-            app.state.http,
-            "GET",
-            settings.recommendation_url + "/api/v1/recommendations/" + analysis_id,
-            params={"role": role},
-        )
+        try:
+            return await fetch(
+                get_http(),
+                "GET",
+                settings.recommendation_url + "/api/v1/recommendations/" + analysis_id,
+                params={"role": role},
+            )
+        except Exception:
+            if analysis_id == "demo":
+                from match_history.demo import demo_analysis
+                from recommendation.engine import recommend
+                from riot_integration.catalog import catalog as get_catalog
+                cat = get_catalog()
+                return recommend(demo_analysis(cat), role=role)
+            raise
 
     static = Path(__file__).parent / "static"
     app.mount("/static", StaticFiles(directory=static), name="static")
