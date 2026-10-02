@@ -94,6 +94,8 @@ def create_app(settings=None, transport=None):
         )
         if path.startswith("/api/"):
             response.headers["Cache-Control"] = "no-store"
+        elif path.startswith("/static/") or path == "/" or path.startswith("/api/index"):
+            response.headers["Cache-Control"] = "no-cache, must-revalidate"
         return response
 
     @app.get("/health")

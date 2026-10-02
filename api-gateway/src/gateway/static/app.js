@@ -160,11 +160,30 @@ function renderAnalysis() {
 
   $('#demo-badge').hidden = !a.demo;
   const avatarEl = $('#avatar');
-  const iconId = a.account.profileIconId || (a.matches && a.matches[0] && a.matches[0].profileIcon) || 29;
+  const iconId = (a.account && a.account.profileIconId != null)
+    ? a.account.profileIconId
+    : ((a.matches && a.matches[0] && a.matches[0].profileIcon != null) ? a.matches[0].profileIcon : 29);
   const version = (a.catalog && a.catalog.version) || '16.19.1';
   const iconUrl = `https://ddragon.leagueoflegends.com/cdn/${version}/img/profileicon/${iconId}.png`;
-  const initials = (a.account.gameName || 'RC').slice(0, 2).toUpperCase();
-  avatarEl.innerHTML = `<img src="${iconUrl}" alt="${a.account.gameName}" class="player-avatar-img" onerror="this.onerror=null;this.parentElement.textContent='${initials}'">`;
+  const initials = (a.account && a.account.gameName ? a.account.gameName : 'RC').slice(0, 2).toUpperCase();
+
+  const avatarImg = $('#avatar-img');
+  const avatarFallback = $('#avatar-fallback');
+  if (avatarImg) {
+    avatarImg.src = iconUrl;
+    avatarImg.alt = a.account.gameName || 'Invocador';
+    avatarImg.style.display = 'block';
+    if (avatarFallback) avatarFallback.style.display = 'none';
+    avatarImg.onerror = () => {
+      avatarImg.style.display = 'none';
+      if (avatarFallback) {
+        avatarFallback.textContent = initials;
+        avatarFallback.style.display = 'block';
+      }
+    };
+  } else if (avatarEl) {
+    avatarEl.innerHTML = `<img id="avatar-img" src="${iconUrl}" alt="${a.account.gameName || 'Invocador'}" class="player-avatar-img">`;
+  }
 
 
   $('#sample-description').textContent = a.demo
