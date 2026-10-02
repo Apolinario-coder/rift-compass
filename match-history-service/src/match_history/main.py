@@ -123,11 +123,13 @@ def create_app(settings=None, transport=None):
                 if row is not None and row["queue"] == body.queue:
                     rows.append(row)
             rows.sort(key=lambda x: x["timestamp"], reverse=True)
+            profile_icon_id = (rows[0].get("profileIcon") if rows else 29)
             payload = {
                 "id": str(uuid4()),
                 "account": {
                     "gameName": account.get("gameName") or body.gameName,
                     "tagLine": account.get("tagLine") or body.tagLine,
+                    "profileIconId": profile_icon_id,
                 },
                 "region": body.region,
                 "queue": body.queue,

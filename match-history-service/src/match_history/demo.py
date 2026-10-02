@@ -35,7 +35,7 @@ def demo_analysis(catalog):
         )
     return {
         "id": "demo",
-        "account": {"gameName": "Invocador", "tagLine": "DEMO"},
+        "account": {"gameName": "Invocador", "tagLine": "DEMO", "profileIconId": 588},
         "region": "americas",
         "queue": 420,
         "requested": 20,

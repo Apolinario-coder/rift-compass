@@ -27,6 +27,7 @@ def extract_match(raw, puuid, queue):
         "duration": duration,
         "timestamp": info.get("gameStartTimestamp", info.get("gameCreation", 0)),
         "queue": queue,
+        "profileIcon": p.get("profileIcon", 29),
     }
 
 

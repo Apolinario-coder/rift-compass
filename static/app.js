@@ -159,7 +159,13 @@ function renderAnalysis() {
   );
 
   $('#demo-badge').hidden = !a.demo;
-  $('#avatar').textContent = a.account.gameName.slice(0, 2).toUpperCase();
+  const avatarEl = $('#avatar');
+  const iconId = a.account.profileIconId || (a.matches && a.matches[0] && a.matches[0].profileIcon) || 29;
+  const version = (a.catalog && a.catalog.version) || '16.19.1';
+  const iconUrl = `https://ddragon.leagueoflegends.com/cdn/${version}/img/profileicon/${iconId}.png`;
+  const initials = (a.account.gameName || 'RC').slice(0, 2).toUpperCase();
+  avatarEl.innerHTML = `<img src="${iconUrl}" alt="${a.account.gameName}" class="player-avatar-img" onerror="this.onerror=null;this.parentElement.textContent='${initials}'">`;
+
 
   $('#sample-description').textContent = a.demo
     ? 'Dados fictícios de demonstração para exibição das recomendações.'
