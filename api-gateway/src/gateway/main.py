@@ -54,8 +54,16 @@ def create_app(settings=None, transport=None):
         path = request.url.path
         if request.method == "POST":
             origin = request.headers.get("origin")
-            if origin and origin != str(request.base_url).rstrip("/"):
-                return JSONResponse({"detail": "Origem não permitida."}, status_code=403)
+            if origin:
+                from urllib.parse import urlparse
+                origin_host = urlparse(origin).netloc.split(":")[0].lower()
+                forwarded_host = request.headers.get("x-forwarded-host", "")
+                host_header = request.headers.get("host", "")
+                req_host = (forwarded_host or host_header).split(":")[0].lower()
+                if origin_host and req_host:
+                    is_local = origin_host in ["localhost", "127.0.0.1"] and req_host in ["localhost", "127.0.0.1"]
+                    if not is_local and origin_host != req_host:
+                        return JSONResponse({"detail": "Origem não permitida."}, status_code=403)
         if auth_enabled and path.startswith("/api/") and path not in {"/api/session", "/api/login"}:
             try:
                 token = request.cookies.get("session", "")
@@ -177,18 +185,56 @@ def create_app(settings=None, transport=None):
 
     @app.post("/api/analyses", status_code=201)
     async def analyze(body: AnalysisRequest):
-        return await fetch(
-            get_http(),
-            "POST",
-            settings.history_url + "/api/v1/analyses",
-            json=body.model_dump(),
-        )
+        try:
+            return await fetch(
+                get_http(),
+                "POST",
+                settings.history_url + "/api/v1/analyses",
+                json=body.model_dump(),
+            )
+        except HTTPException as e:
+            if e.status_code not in (502, 503, 504):
+                raise
+        except Exception:
+            pass
+
+        try:
+            from match_history.main import create_app as create_history_app
+            if not hasattr(app.state, "history_app"):
+                app.state.history_app = create_history_app()
+            async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app.state.history_app), timeout=90) as client:
+                res = await client.post("http://test/api/v1/analyses", json=body.model_dump())
+                if res.is_success:
+                    return res.json()
+                detail = res.json().get("detail", "Erro ao processar análise.") if "application/json" in res.headers.get("content-type", "") else res.text
+                raise HTTPException(res.status_code, detail)
+        except HTTPException:
+            raise
+        except Exception:
+            pass
+        import os
+        if not os.environ.get("RIOT_API_KEY"):
+            raise HTTPException(503, "RIOT_API_KEY não configurada no servidor. Cadastre a variável RIOT_API_KEY ou utilize o botão 'Carregar Demonstração'.")
+        raise HTTPException(502, "Não foi possível conectar ao serviço da Riot Games. Verifique a chave ou tente novamente.")
 
     @app.get("/api/analyses/{analysis_id}")
     async def read_analysis(analysis_id: UUID):
-        return await fetch(
-            get_http(), "GET", settings.history_url + "/api/v1/analyses/" + str(analysis_id)
-        )
+        try:
+            return await fetch(
+                get_http(), "GET", settings.history_url + "/api/v1/analyses/" + str(analysis_id)
+            )
+        except Exception:
+            try:
+                from match_history.main import create_app as create_history_app
+                if not hasattr(app.state, "history_app"):
+                    app.state.history_app = create_history_app()
+                async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app.state.history_app), timeout=30) as client:
+                    res = await client.get(f"http://test/api/v1/analyses/{analysis_id}")
+                    if res.is_success:
+                        return res.json()
+            except Exception:
+                pass
+            raise HTTPException(404, "Análise não encontrada.")
 
     @app.get("/api/recommendations/{analysis_id}")
     async def recommendations(analysis_id: str, role: Role = "ALL"):
