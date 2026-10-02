@@ -405,17 +405,26 @@ a {
 
 .search-field select {
   cursor: pointer;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  background-color: transparent;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23c8aa6e' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+  padding-right: 24px;
+  color-scheme: dark !important;
 }
 
 .search-field select option {
-  background-color: #0c1524;
-  color: #f1f5f9;
+  background-color: #0c1524 !important;
+  color: #f1f5f9 !important;
   padding: 10px 14px;
 }
 
 .search-field select option:checked {
-  background-color: #1a2a40;
-  color: var(--gold-primary);
+  background-color: #1a2a40 !important;
+  color: var(--gold-primary) !important;
   font-weight: 600;
 }
 
@@ -544,6 +553,8 @@ a {
 .player-avatar {
   width: 56px;
   height: 56px;
+  min-width: 56px;
+  min-height: 56px;
   border-radius: 12px;
   background: var(--bg-elevated);
   border: 2px solid var(--gold-primary);
@@ -1932,6 +1943,9 @@ dialog.app-modal::backdrop {
   }
   .pillars-row {
     grid-template-columns: 1fr;
+  }
+  .search-field select {
+    background-color: var(--bg-card) !important;
   }
 }
 

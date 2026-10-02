@@ -175,10 +175,15 @@ function renderAnalysis() {
     avatarImg.style.display = 'block';
     if (avatarFallback) avatarFallback.style.display = 'none';
     avatarImg.onerror = () => {
-      avatarImg.style.display = 'none';
-      if (avatarFallback) {
-        avatarFallback.textContent = initials;
-        avatarFallback.style.display = 'block';
+      if (!avatarImg.dataset.retried) {
+        avatarImg.dataset.retried = '1';
+        avatarImg.src = `https://ddragon.leagueoflegends.com/cdn/16.19.1/img/profileicon/588.png`;
+      } else {
+        avatarImg.style.display = 'none';
+        if (avatarFallback) {
+          avatarFallback.textContent = initials;
+          avatarFallback.style.display = 'block';
+        }
       }
     };
   } else if (avatarEl) {
