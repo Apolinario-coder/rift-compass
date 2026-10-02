@@ -183,6 +183,38 @@ def create_app(settings=None, transport=None):
             from riot_integration.catalog import catalog as get_catalog
             return demo_analysis(get_catalog())
 
+    def get_inprocess_history():
+        h = getattr(app.state, "inprocess_history", None)
+        if h is not None:
+            return h
+        import asyncio
+        from portfolio_core.database import open_database
+        from riot_integration.config import Settings as RiotSettings
+        from riot_integration.client import RiotClient
+        from riot_integration.main import create_app as create_riot_app
+        from match_history.main import create_app as create_history_app, Settings as HistorySettings
+        import match_history
+
+        r_settings = RiotSettings()
+        riot_app = create_riot_app(settings=r_settings)
+        r_http = httpx.AsyncClient(
+            base_url=f"https://{r_settings.region}.api.riotgames.com",
+            headers={"X-Riot-Token": r_settings.api_key.get_secret_value()},
+            timeout=r_settings.timeout_seconds,
+        )
+        riot_app.state.riot = RiotClient(r_http, r_settings)
+
+        h_settings = HistorySettings()
+        h_app = create_history_app(settings=h_settings, transport=httpx.ASGITransport(app=riot_app))
+        h_app.state.engine = open_database(
+            h_settings.database_url, Path(match_history.__file__).parent / "migrations"
+        )
+        h_app.state.lock = asyncio.Lock()
+        h_app.state.http = httpx.AsyncClient(timeout=25, transport=httpx.ASGITransport(app=riot_app))
+
+        app.state.inprocess_history = h_app
+        return h_app
+
     @app.post("/api/analyses", status_code=201)
     async def analyze(body: AnalysisRequest):
         try:
@@ -199,10 +231,8 @@ def create_app(settings=None, transport=None):
             pass
 
         try:
-            from match_history.main import create_app as create_history_app
-            if not hasattr(app.state, "history_app"):
-                app.state.history_app = create_history_app()
-            async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app.state.history_app), timeout=90) as client:
+            h_app = get_inprocess_history()
+            async with httpx.AsyncClient(transport=httpx.ASGITransport(app=h_app), timeout=90) as client:
                 res = await client.post("http://test/api/v1/analyses", json=body.model_dump())
                 if res.is_success:
                     return res.json()
@@ -210,12 +240,11 @@ def create_app(settings=None, transport=None):
                 raise HTTPException(res.status_code, detail)
         except HTTPException:
             raise
-        except Exception:
-            pass
-        import os
-        if not os.environ.get("RIOT_API_KEY"):
-            raise HTTPException(503, "RIOT_API_KEY não configurada no servidor. Cadastre a variável RIOT_API_KEY ou utilize o botão 'Carregar Demonstração'.")
-        raise HTTPException(502, "Não foi possível conectar ao serviço da Riot Games. Verifique a chave ou tente novamente.")
+        except Exception as err:
+            import os
+            if not os.environ.get("RIOT_API_KEY"):
+                raise HTTPException(503, "RIOT_API_KEY não configurada no servidor. Cadastre a variável RIOT_API_KEY ou utilize o botão 'Carregar Demonstração'.")
+            raise HTTPException(502, f"Falha na comunicação com a Riot Games: {err}")
 
     @app.get("/api/analyses/{analysis_id}")
     async def read_analysis(analysis_id: UUID):
@@ -225,10 +254,8 @@ def create_app(settings=None, transport=None):
             )
         except Exception:
             try:
-                from match_history.main import create_app as create_history_app
-                if not hasattr(app.state, "history_app"):
-                    app.state.history_app = create_history_app()
-                async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app.state.history_app), timeout=30) as client:
+                h_app = get_inprocess_history()
+                async with httpx.AsyncClient(transport=httpx.ASGITransport(app=h_app), timeout=30) as client:
                     res = await client.get(f"http://test/api/v1/analyses/{analysis_id}")
                     if res.is_success:
                         return res.json()
