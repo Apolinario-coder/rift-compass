@@ -86,8 +86,8 @@ def create_app(settings=None, transport=None):
             " img-src 'self' https://ddragon.leagueoflegends.com data:;"
             " style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;"
             " font-src 'self' https://fonts.gstatic.com;"
-            " script-src 'self' https://cdnjs.cloudflare.com;"
-            " connect-src 'self';"
+            " script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://static.cloudflareinsights.com;"
+            " connect-src 'self' https://cloudflareinsights.com;"
             " frame-ancestors 'none';"
             " base-uri 'self';"
             " form-action 'self'"
@@ -236,6 +236,10 @@ def create_app(settings=None, transport=None):
                 pass
             raise HTTPException(404, "Análise não encontrada.")
 
+    @app.get("/api/analyses", include_in_schema=False)
+    async def list_analyses():
+        return {"items": []}
+
     @app.get("/api/recommendations/{analysis_id}")
     async def recommendations(analysis_id: str, role: Role = "ALL"):
         if analysis_id != "demo":
@@ -251,13 +255,22 @@ def create_app(settings=None, transport=None):
                 params={"role": role},
             )
         except Exception:
+            from recommendation.engine import recommend
             if analysis_id == "demo":
                 from match_history.demo import demo_analysis
-                from recommendation.engine import recommend
                 from riot_integration.catalog import catalog as get_catalog
                 cat = get_catalog()
                 return recommend(demo_analysis(cat), role=role)
-            raise
+            try:
+                # Gera recomendações in-process para o ID real recuperando a análise salva
+                analysis = await read_analysis(UUID(analysis_id))
+                return {
+                    "analysisId": analysis_id,
+                    "demo": analysis.get("demo", False),
+                    **recommend(analysis, role=role),
+                }
+            except Exception:
+                raise
 
     static_candidates = [
         Path(__file__).parent / "static",
