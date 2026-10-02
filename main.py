@@ -28,5 +28,5 @@ if __name__ == "__main__":
     if os.environ.get("VERCEL"):
         print("Vercel build verification: FastAPI app successfully initialized.")
         sys.exit(0)
-    import uvicorn
-    uvicorn.run("main:app", host="0.0.0.0", port=8010, reload=True)
+    port = int(os.environ.get("PORT", 8010))
+    uvicorn.run("main:app", host="0.0.0.0", port=port)
