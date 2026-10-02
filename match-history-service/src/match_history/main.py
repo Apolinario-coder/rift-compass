@@ -105,6 +105,8 @@ def create_app(settings=None, transport=None):
                     row = session.execute(
                         select(matches.c.payload).where(matches.c.key == key)
                     ).scalar_one_or_none()
+                if row is not None and "profileIcon" not in row:
+                    row = None
                 if row is None:
                     raw = await fetch(
                         http,
@@ -119,11 +121,48 @@ def create_app(settings=None, transport=None):
                     if row is not None:
                         # Cada partida concluída fica salva mesmo se a seguinte sofrer rate limit.
                         with Session(app.state.engine) as session, session.begin():
+                            session.execute(matches.delete().where(matches.c.key == key))
                             session.execute(matches.insert().values(key=key, payload=row))
                 if row is not None and row["queue"] == body.queue:
                     rows.append(row)
             rows.sort(key=lambda x: x["timestamp"], reverse=True)
-            profile_icon_id = (rows[0].get("profileIcon") if rows else 29)
+
+            platform = "br1"
+            if ids and "_" in ids[0]:
+                platform = ids[0].split("_")[0].lower()
+            elif body.tagLine:
+                tl = body.tagLine.lower().strip()
+                if tl in ("br", "br1"):
+                    platform = "br1"
+                elif tl in ("na", "na1"):
+                    platform = "na1"
+                elif tl in ("euw", "euw1"):
+                    platform = "euw1"
+                elif tl in ("eun", "eune", "eun1"):
+                    platform = "eun1"
+                elif tl in ("kr", "kr1"):
+                    platform = "kr"
+                elif tl in ("las", "la2"):
+                    platform = "la2"
+                elif tl in ("lan", "la1"):
+                    platform = "la1"
+
+            profile_icon_id = None
+            try:
+                summoner = await fetch(
+                    http,
+                    "GET",
+                    base + f"/summoners/by-puuid/{quote(account['puuid'], safe='')}",
+                    params={"platform": platform},
+                )
+                if isinstance(summoner, dict) and summoner.get("profileIconId") is not None:
+                    profile_icon_id = summoner["profileIconId"]
+            except Exception:
+                pass
+
+            if profile_icon_id is None:
+                profile_icon_id = (rows[0].get("profileIcon") if rows else 29) or 29
+
             payload = {
                 "id": str(uuid4()),
                 "account": {

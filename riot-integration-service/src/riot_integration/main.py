@@ -72,6 +72,10 @@ def create_app(settings: Settings | None = None, transport=None) -> FastAPI:
     ):
         return await request.app.state.riot.account(game_name, tag_line, region)
 
+    @app.get("/api/v1/summoners/by-puuid/{puuid}", tags=["Contas"])
+    async def summoner(request: Request, puuid: str, platform: str = "br1"):
+        return await request.app.state.riot.summoner(puuid, platform)
+
     @app.get("/api/v1/champions", tags=["Catálogo"])
     async def champions():
         return catalog()

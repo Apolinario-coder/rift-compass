@@ -51,6 +51,20 @@ class RiotClient:
         except ValidationError:
             raise RiotError(502, "Resposta inválida da Riot.") from None
 
+    async def summoner(self, puuid: str, platform: str = "br1") -> dict:
+        if not self.settings.api_key.get_secret_value().strip():
+            return {}
+        platform = platform.lower().strip()
+        url = f"https://{platform}.api.riotgames.com/lol/summoner/v4/summoners/by-puuid/{quote(puuid, safe='')}"
+        headers = {"X-Riot-Token": self.settings.api_key.get_secret_value()}
+        try:
+            res = await self.http.get(url, headers=headers)
+            if res.status_code == 200:
+                return res.json()
+        except Exception:
+            pass
+        return {}
+
     async def get_json(self, path: str, *, region: str | None = None, params=None, ttl=0):
         if not self.settings.api_key.get_secret_value().strip():
             raise RiotError(503, "Configure RIOT_API_KEY no servidor.")
